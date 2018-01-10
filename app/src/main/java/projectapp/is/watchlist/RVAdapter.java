@@ -1,5 +1,7 @@
 package projectapp.is.watchlist;
 
+import android.content.Intent;
+import android.os.Bundle;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -8,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import java.util.List;
@@ -25,6 +28,7 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
         TextView movieDate;
         ImageView movieMainImage;
         TextView movieDesc;
+        RatingBar ratingBar;
 
         ImageButton deleteCardButton;
         ImageButton editCardButton;
@@ -37,6 +41,7 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
             movieDate = (TextView) itemView.findViewById(R.id.imageCardDate);
             movieMainImage = (ImageView) itemView.findViewById(R.id.editCardCover);
             movieDesc = (TextView) itemView.findViewById(R.id.imageCardDesc);
+            ratingBar = (RatingBar) itemView.findViewById(R.id.ratingBarMain);
 
             deleteCardButton = (ImageButton) itemView.findViewById(R.id.imageCardDelete);
             editCardButton = (ImageButton) itemView.findViewById(R.id.imageCardEdit);
@@ -83,13 +88,15 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
     }
 
     @Override
-    public void onBindViewHolder(RVAdapter.CardViewHolder holder, final int position) {
+    public void onBindViewHolder(final RVAdapter.CardViewHolder holder, final int position) {
         holder.movieTitle.setText(mainMovieCards.get(position).getMovieTitle());
 
         holder.movieDesc.setText(mainMovieCards.get(position).getMovieDescription());
-        holder.movieDate.setText(mainMovieCards.get(position).getDateText());
+        String date = mainMovieCards.get(position).getDateText();
+        holder.movieDate.setText(date);
+        holder.ratingBar.setRating(mainMovieCards.get(position).getRating());
 
-        holder.movieMainImage.setVisibility(View.GONE);
+        //holder.movieMainImage.setVisibility(View.GONE);
 
         holder.deleteCardButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -109,7 +116,7 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
                 intent.setClass(view.getContext(), EditJourneyActivity.class);
                 Bundle bundle = new Bundle();
                 bundle.putString("movieTitle", mainMovieCards.get(position).getTopText());
-                bundle.putString("journeyCoverImagePath", mainMovieCards.get(position).getImagePath());
+                bundle.putString("movieCoverImagePath", mainMovieCards.get(position).getImagePath());
                 bundle.putString("journeyDescription", mainMovieCards.get(position).getBotText());
                 bundle.putString("dateText", mainMovieCards.get(position).getDateText());
                 bundle.putInt("position", position);
@@ -120,20 +127,30 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
             }
         });*/
 
-        /*holder.cv.setOnClickListener(new View.OnClickListener() {
+        holder.cv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent();
                 intent.setClass(view.getContext(), SecondActivity.class);
                 Bundle bundle = new Bundle();
-                bundle.putString("movieTitle", mainMovieCards.get(position).getTopText());
-                bundle.putString("journeyCoverImagePath", mainMovieCards.get(position).getImagePath());
-                String parent = mainMovieCards.get(position).getParentImageFolder();
-                bundle.putString("parentImageFolder", mainMovieCards.get(position).getParentImageFolder());
+                bundle.putString("movieTitle", mainMovieCards.get(position).getMovieTitle());
                 intent.putExtras(bundle);
                 view.getContext().startActivity(intent);
             }
-        });*/
+        });
+
+        holder.movieMainImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                holder.movieMainImage.setVisibility(View.GONE);
+            }
+        });
+        holder.editCardButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                holder.movieMainImage.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     @Override

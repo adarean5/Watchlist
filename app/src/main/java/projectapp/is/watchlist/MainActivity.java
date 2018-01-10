@@ -1,11 +1,15 @@
 package projectapp.is.watchlist;
 
+import android.app.SearchManager;
+import android.app.VoiceInteractor;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Movie;
 import android.media.ThumbnailUtils;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -16,6 +20,23 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.ServerError;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -24,20 +45,33 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Stack;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity{
     public final int EDIT_CARD = 3001;
     private final DateFormat DATE_FORMAT = new SimpleDateFormat("dd. MMM, YYYY");
+
+    private final String getUrl = "http://ismoviesrest.azurewebsites.net/Movies.svc/Movies";
+    private final String postUrl = "http://ismoviesrest.azurewebsites.net/Movies.svc/Movie";
 
     RecyclerView recyclerViewMain;
     LinearLayoutManager llm;
     FloatingActionButton fab;
     RVAdapter rvAdapter;
+    SwipeRefreshLayout swipeRefreshLayout;
+    RequestQueue requestQueue;
 
     ArrayList<MainMovieCard> mainMovieCards;
+    Stack<MainMovieCard> moviesToSync;
+    ArrayList<Integer> IDs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +80,8 @@ public class MainActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbarMain);
         setSupportActionBar(toolbar);
+
+        moviesToSync = new Stack<MainMovieCard>();
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist")){
             mainMovieCards = new ArrayList<>();
@@ -57,6 +93,60 @@ public class MainActivity extends AppCompatActivity {
             mainMovieCards = savedInstanceState.getParcelableArrayList("cardlist");
             Log.v("r", "RESTORED");
         }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("IDs")){
+            IDs = new ArrayList<>();
+            IDs = readIDs();
+        }
+        else {
+            IDs = savedInstanceState.getIntegerArrayList("IDs");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync")){
+            moviesToSync = new Stack<MainMovieCard>();
+            moviesToSync = readToSync();
+        }
+        else {
+            moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
+        }
+
+        requestQueue = Volley.newRequestQueue(getApplicationContext());
+
+
+        swipeRefreshLayout = findViewById(R.id.swipeMainRefresh);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                String s = "1 ";
+                Log.e("refresh", s+s+s+s+s);
+                JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
+                requestQueue.add(request);
+                while (!moviesToSync.empty()){
+                    Log.e("Pop", "popped");
+                    final Map<String, String> movieMap = new HashMap<String, String>();
+                    final MainMovieCard movieCard = moviesToSync.pop();
+                    int id = movieCard.getId();
+                    IDs.add(id);
+                    movieMap.put("id", String.valueOf(id));
+                    movieMap.put("movieTitle", movieCard.getMovieTitle());
+                    movieMap.put("movieDesc", movieCard.getMovieTitle());
+                    movieMap.put("movieDate", movieCard.getDateText());
+                    movieMap.put("movieRating", String.valueOf(movieCard.getRating()));
+
+                     JsonObjectRequest postRequest = new JsonObjectRequest(postUrl, new JSONObject(movieMap), jsonResponseListener, errorListener);/*{
+                        @Override
+                        protected Map<String, String> getParams() throws AuthFailureError {
+                            return movieMap;
+                        }
+                    };*/
+                    requestQueue.add(postRequest);
+                }
+            }
+        });
+        swipeRefreshLayout.setColorSchemeResources(
+                R.color.colorPrimary,
+                R.color.colorAccent,
+                R.color.colorPrimaryDark);
 
         recyclerViewMain = (RecyclerView)findViewById(R.id.recyclerViewMain);
         llm = new LinearLayoutManager(this);
@@ -87,11 +177,95 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private Response.Listener<JSONObject> jsonResponseListener = new Response.Listener<JSONObject>() {
+        @Override
+        public void onResponse(JSONObject response) {
+            Log.e("POST RESPONSE", response.toString());
+        }
+    };
+
+    private Response.Listener<JSONArray> jsonArrayListener = new Response.Listener<JSONArray>() {
+        @Override
+        public void onResponse(JSONArray response) {
+            ArrayList<HashMap<String, String>> data = new ArrayList<>();
+            for (int i = 0; i < response.length(); i++) {
+                try {
+                    JSONObject object = response.getJSONObject(i);
+                    int id = object.getInt("id");
+                    if (!IDs.contains(id)){
+                        String movieName = object.getString("movieTitle");
+                        String movieDesc = object.getString("movieDesc");
+                        String movieDate = object.getString("movieDate");
+                        float rating = (float) object.getDouble("movieRating");
+
+                        mainMovieCards.add(new MainMovieCard(id, movieName, movieDesc, movieDate, rating));
+                        IDs.add(id);
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    break;
+                }
+            }
+            (recyclerViewMain.getAdapter()).notifyDataSetChanged();
+            swipeRefreshLayout.setRefreshing(false);
+        }
+    };
+
+    private Response.ErrorListener errorListener = new Response.ErrorListener() {
+        @Override
+        public void onErrorResponse(VolleyError error) {
+            NetworkResponse response = error.networkResponse;
+            if (error instanceof ServerError && response != null) {
+                try {
+                    String res = new String(response.data,
+                            HttpHeaderParser.parseCharset(response.headers, "utf-8"));
+                    // Now you can use any deserializer to make sense of data
+                    JSONObject obj = new JSONObject(res);
+                } catch (UnsupportedEncodingException e1) {
+                    // Couldn't properly decode data to string
+                    e1.printStackTrace();
+                } catch (JSONException e2) {
+                    // returned data is not JSONObject?
+                    e2.printStackTrace();
+                }
+            }
+        }
+    };
+
+    public void onSearchClick(View v)
+    {
+        try {
+            Intent intent = new Intent(Intent.ACTION_WEB_SEARCH);
+            String term = "Avengers"; //editTextInput.getText().toString();
+            intent.putExtra(SearchManager.QUERY, term);
+            startActivity(intent);
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+
+    }
+
     public void saveToInternalStorage() {
         try {
             FileOutputStream fos = this.openFileOutput("MainMovieCards", Context.MODE_PRIVATE);
             ObjectOutputStream of = new ObjectOutputStream(fos);
             of.writeObject(mainMovieCards);
+            of.flush();
+            of.close();
+            fos.close();
+
+            fos = this.openFileOutput("IDs", Context.MODE_PRIVATE);
+            of = new ObjectOutputStream(fos);
+            of.writeObject(IDs);
+            of.flush();
+            of.close();
+            fos.close();
+            Log.v("iw", "Written to internal storage");
+
+            fos = this.openFileOutput("moviesToSync", Context.MODE_PRIVATE);
+            of = new ObjectOutputStream(fos);
+            of.writeObject(moviesToSync);
             of.flush();
             of.close();
             fos.close();
@@ -122,6 +296,46 @@ public class MainActivity extends AppCompatActivity {
         return toReturn;
     }
 
+    public ArrayList<Integer> readIDs() {
+        ArrayList<Integer> toReturn = new ArrayList<Integer>();
+        FileInputStream fis;
+        try {
+            fis = this.openFileInput("IDs");
+            ObjectInputStream oi = new ObjectInputStream(fis);
+            toReturn = (ArrayList<Integer>) oi.readObject();
+            oi.close();
+            Log.v("ir", "Read from internal storage");
+        } catch (FileNotFoundException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (IOException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return toReturn;
+    }
+
+    public Stack<MainMovieCard> readToSync() {
+        Stack<MainMovieCard> toReturn = new Stack<MainMovieCard>();
+        FileInputStream fis;
+        try {
+            fis = this.openFileInput("moviesToSync");
+            ObjectInputStream oi = new ObjectInputStream(fis);
+            toReturn = (Stack<MainMovieCard>) oi.readObject();
+            oi.close();
+            Log.v("ir", "Read from internal storage");
+        } catch (FileNotFoundException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (IOException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return toReturn;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -131,8 +345,12 @@ public class MainActivity extends AppCompatActivity {
             String title = bundle.getString("Edit.editTitle");
             String description = bundle.getString("Edit.editDesc");
             String currentDate = bundle.getString("Edit.dateText");
-
-            mainMovieCards.add(0, new MainMovieCard(title, description, currentDate));
+            float rating = bundle.getFloat("Edit.rating");
+            int randomNum = ThreadLocalRandom.current().nextInt(1000, 9999);
+            //IDs.add(randomNum);
+            MainMovieCard movieCard = new MainMovieCard(randomNum,title, description, currentDate, rating);
+            mainMovieCards.add(0, movieCard);
+            moviesToSync.push(movieCard);
             (recyclerViewMain.getAdapter()).notifyDataSetChanged();
 
             saveToInternalStorage();
@@ -142,6 +360,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         outState.putParcelableArrayList("cardlist", mainMovieCards);
+        outState.putIntegerArrayList("IDs", IDs);
+        outState.putSerializable("moviesToSync", moviesToSync);
         super.onSaveInstanceState(outState);
         Log.v("s", "SAVED");
     }
@@ -152,9 +372,22 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist")){
             mainMovieCards = new ArrayList<>();
         }
-
         else{
             mainMovieCards = savedInstanceState.getParcelableArrayList("cardlist");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("IDs")){
+            IDs = new ArrayList<>();
+        }
+        else {
+            IDs = savedInstanceState.getIntegerArrayList("IDs");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync")){
+            moviesToSync = new Stack<MainMovieCard>();
+        }
+        else {
+            moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
         }
     }
 

@@ -10,20 +10,29 @@ import java.io.Serializable;
  */
 
 public class MainMovieCard implements Parcelable, Serializable {
+    private int id;
     private String movieTitle;
     private String movieDescription;
     private String dateText;
+    private float rating;
 
-    public MainMovieCard(String movieTitle, String movieDescription, String dateText){
+    public MainMovieCard(int id, String movieTitle, String movieDescription, String dateText, float rating){
+        this.id = id;
         this.movieTitle = movieTitle;
         this.movieDescription = movieDescription;
         this.dateText = dateText;
+        this.rating = rating;
     }
 
     private MainMovieCard(Parcel in){
         movieTitle = in.readString();
         movieDescription = in.readString();
         dateText = in.readString();
+        rating = in.readFloat();
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getMovieTitle() {
@@ -32,6 +41,10 @@ public class MainMovieCard implements Parcelable, Serializable {
 
     public String getMovieDescription() {
         return movieDescription;
+    }
+
+    public float getRating() {
+        return rating;
     }
 
     public String getDateText() {
@@ -48,6 +61,7 @@ public class MainMovieCard implements Parcelable, Serializable {
         parcel.writeString(movieTitle);
         parcel.writeString(movieDescription);
         parcel.writeString(dateText);
+        parcel.writeFloat(rating);
     }
 
     public static final Parcelable.Creator<MainMovieCard> CREATOR = new Parcelable.Creator<MainMovieCard>() {

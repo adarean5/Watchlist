@@ -115,19 +115,11 @@
         app:layout_constraintTop_toBottomOf="@+id/imageCardView"
         app:layout_constraintVertical_bias="1.0">
 
-        <TextView
-            android:id="@+id/textView"
+        <RatingBar
+            android:id="@+id/addRatingBar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_margin="@dimen/fab_margin"
-            android:text="Select cover image"
-            android:textColor="@color/colorAccent"
-            android:textSize="20sp"
-            app:layout_constraintBottom_toTopOf="@+id/linearLayout"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/imageCardView" />
+            android:layout_margin="16dp"/>
 
         <LinearLayout
             android:id="@+id/linearLayout"
@@ -139,27 +131,14 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
-            <ImageButton
-                android:id="@+id/buttonEditCamera"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+            <Button
+                android:id="@+id/buttonSelectCover"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/colorAccent"
+                android:background="@color/colorPrimary"
                 android:layout_weight="1"
-                android:background="?selectableItemBackground"
-                android:padding="@dimen/fab_margin"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:srcCompat="@drawable/ic_library_add_black_24dp" />
-
-            <ImageButton
-                android:id="@+id/buttonEditGallery"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="?selectableItemBackground"
-                android:padding="@dimen/fab_margin"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:srcCompat="@drawable/ic_library_add_black_24dp" />
+                android:text="Select cover image" />
         </LinearLayout>
     </LinearLayout>
 
