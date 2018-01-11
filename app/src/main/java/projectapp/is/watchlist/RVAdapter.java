@@ -108,16 +108,16 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
             }
         });
 
-        /*holder.editCardButton.setOnClickListener(new View.OnClickListener() {
+        holder.editCardButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Log.v("press", "EDIT PRESSED");
                 Intent intent = new Intent();
-                intent.setClass(view.getContext(), EditJourneyActivity.class);
+                intent.setClass(view.getContext(), AddMovieActivity.class);
                 Bundle bundle = new Bundle();
-                bundle.putString("movieTitle", mainMovieCards.get(position).getTopText());
-                bundle.putString("movieCoverImagePath", mainMovieCards.get(position).getImagePath());
-                bundle.putString("journeyDescription", mainMovieCards.get(position).getBotText());
+                bundle.putString("movieTitle", mainMovieCards.get(position).getMovieTitle());
+                //bundle.putString("movieCoverImagePath", mainMovieCards.get(position).getImagePath());
+                bundle.putString("movieDesc", mainMovieCards.get(position).getMovieDescription());
                 bundle.putString("dateText", mainMovieCards.get(position).getDateText());
                 bundle.putInt("position", position);
                 //String parent = mainMovieCards.get(position).getParentImageFolder();
@@ -125,7 +125,7 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
                 intent.putExtras(bundle);
                 view.getContext().startActivity(intent);
             }
-        });*/
+        });
 
         holder.cv.setOnClickListener(new View.OnClickListener() {
             @Override

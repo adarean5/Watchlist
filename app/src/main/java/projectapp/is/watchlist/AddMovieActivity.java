@@ -2,6 +2,7 @@ package projectapp.is.watchlist;
 
 import android.content.Intent;
 import android.content.RestrictionsManager;
+import android.graphics.BitmapFactory;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -44,6 +45,14 @@ public class AddMovieActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_movie);
+
+        Intent intent = getIntent();
+        if (intent != null) {
+            Bundle bundle = intent.getExtras();
+            if (bundle == null){
+                Log.e("NULL EDIT", "NULL EDIT");
+            }
+        }
 
         toolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbarSave);
         if (toolbar != null) {

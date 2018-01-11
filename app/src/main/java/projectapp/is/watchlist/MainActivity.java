@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,6 +28,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.ServerError;
 import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -57,10 +59,13 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class MainActivity extends AppCompatActivity{
     public final int EDIT_CARD = 3001;
+    public final int REQUEST_LOGIN = 0001;
     private final DateFormat DATE_FORMAT = new SimpleDateFormat("dd. MMM, YYYY");
 
     private final String getUrl = "http://ismoviesrest.azurewebsites.net/Movies.svc/Movies";
     private final String postUrl = "http://ismoviesrest.azurewebsites.net/Movies.svc/Movie";
+    private String username;
+    private String password;
 
     RecyclerView recyclerViewMain;
     LinearLayoutManager llm;
@@ -77,6 +82,11 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (username == null || password == null){
+            Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
+            startActivityForResult(intent, REQUEST_LOGIN);
+        }
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbarMain);
         setSupportActionBar(toolbar);
@@ -110,6 +120,20 @@ public class MainActivity extends AppCompatActivity{
             moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
         }
 
+        if (savedInstanceState == null || !savedInstanceState.containsKey("username")){
+            username = null;
+        }
+        else {
+            username = savedInstanceState.getString("username");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("pass")){
+            password = null;
+        }
+        else {
+            password = savedInstanceState.getString("pass");
+        }
+
         requestQueue = Volley.newRequestQueue(getApplicationContext());
 
 
@@ -117,14 +141,23 @@ public class MainActivity extends AppCompatActivity{
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                String s = "1 ";
-                Log.e("refresh", s+s+s+s+s);
                 JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
                 requestQueue.add(request);
                 while (!moviesToSync.empty()){
                     Log.e("Pop", "popped");
                     final Map<String, String> movieMap = new HashMap<String, String>();
                     final MainMovieCard movieCard = moviesToSync.pop();
+                    int id = movieCard.getId();
+                    if (IDs.contains(id)){
+                        Log.e("Pop", "UPDATING");
+                        updateMovie(movieCard, id);
+                    }
+                    else{
+                        Log.e("Pop", "ADDING");
+                        addMovie(movieCard, id);
+                    }
+
+                    /*
                     int id = movieCard.getId();
                     IDs.add(id);
                     movieMap.put("id", String.valueOf(id));
@@ -133,13 +166,10 @@ public class MainActivity extends AppCompatActivity{
                     movieMap.put("movieDate", movieCard.getDateText());
                     movieMap.put("movieRating", String.valueOf(movieCard.getRating()));
 
-                     JsonObjectRequest postRequest = new JsonObjectRequest(postUrl, new JSONObject(movieMap), jsonResponseListener, errorListener);/*{
-                        @Override
-                        protected Map<String, String> getParams() throws AuthFailureError {
-                            return movieMap;
-                        }
-                    };*/
+                    JsonObjectRequest postRequest = new JsonObjectRequest(postUrl, new JSONObject(movieMap), jsonResponseListener, errorListener);
+
                     requestQueue.add(postRequest);
+                    */
                 }
             }
         });
@@ -175,6 +205,148 @@ public class MainActivity extends AppCompatActivity{
                 startActivityForResult(intent, EDIT_CARD);
             }
         });
+    }
+
+    public void addMovie(final MainMovieCard movieCard, final int id) {
+        try {
+            JSONObject jsonBody = new JSONObject();
+
+            jsonBody.put("id", id);
+            jsonBody.put("movieTitle", movieCard.getMovieTitle());
+            jsonBody.put("movieDesc", movieCard.getMovieDescription());
+            jsonBody.put("movieDate", movieCard.getDateText());
+            jsonBody.put("movieRating", movieCard.getRating());
+
+            final String mRequestBody = jsonBody.toString();
+
+            StringRequest stringRequest = new StringRequest(Request.Method.POST, postUrl, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    IDs.add(id);
+                    Log.i("LOG_VOLLEY", response);
+                }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    moviesToSync.push(movieCard);
+                    Log.e("LOG_VOLLEY", error.toString());
+                }
+            }) {
+                @Override
+                public String getBodyContentType() {
+                    return "application/json; charset=utf-8";
+                }
+
+                @Override
+                public Map<String, String> getHeaders() throws AuthFailureError {
+                    super.getHeaders();
+                    Map<String, String> headers = new HashMap<>();
+                    //String credentials = "admin:test";
+                    String credentials = username + ":" + password;
+                    Log.e("LOGIN INFO", credentials);
+                    String auth = credentials;//Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
+                    //headers.put("Content-Type", "application/json");
+                    headers.put("Authorization", auth);
+                    return headers;
+                }
+
+                @Override
+                public byte[] getBody() throws AuthFailureError {
+                    try {
+                        return mRequestBody == null ? null : mRequestBody.getBytes("utf-8");
+                    } catch (UnsupportedEncodingException uee) {
+                        VolleyLog.wtf("Unsupported Encoding while trying to get the bytes of %s using %s", mRequestBody, "utf-8");
+                        return null;
+                    }
+                }
+
+                @Override
+                protected Response<String> parseNetworkResponse(NetworkResponse response) {
+                    String responseString = "";
+                    if (response != null) {
+
+                        responseString = String.valueOf(response.statusCode);
+
+                    }
+                    return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
+                }
+            };
+
+            requestQueue.add(stringRequest);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateMovie(final MainMovieCard movieCard, int id) {
+        try {
+            JSONObject jsonBody = new JSONObject();
+            //jsonBody.put("id", id);
+            jsonBody.put("movieTitle", movieCard.getMovieTitle());
+            jsonBody.put("movieDesc", movieCard.getMovieDescription());
+            jsonBody.put("movieDate", movieCard.getDateText());
+            jsonBody.put("movieRating", movieCard.getRating());
+
+            final String mRequestBody = jsonBody.toString();
+            String url = postUrl + "/" + String.valueOf(id);
+
+            StringRequest stringRequest = new StringRequest(Request.Method.PUT, url, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    //IDs.add(id);
+                    Log.i("LOG_VOLLEY", response);
+                }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    moviesToSync.push(movieCard);
+                    Log.e("LOG_VOLLEY", error.toString());
+                }
+            }) {
+                @Override
+                public String getBodyContentType() {
+                    return "application/json; charset=utf-8";
+                }
+
+                @Override
+                public Map<String, String> getHeaders() throws AuthFailureError {
+                    super.getHeaders();
+                    Map<String, String> headers = new HashMap<>();
+                    //String credentials = "admin:test";
+                    String credentials = username + ":" + password;
+                    Log.e("LOGIN INFO", credentials);
+                    String auth = credentials;//Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
+                    //headers.put("Content-Type", "application/json");
+                    headers.put("Authorization", auth);
+                    return headers;
+                }
+
+                @Override
+                public byte[] getBody() throws AuthFailureError {
+                    try {
+                        return mRequestBody == null ? null : mRequestBody.getBytes("utf-8");
+                    } catch (UnsupportedEncodingException uee) {
+                        VolleyLog.wtf("Unsupported Encoding while trying to get the bytes of %s using %s", mRequestBody, "utf-8");
+                        return null;
+                    }
+                }
+
+                @Override
+                protected Response<String> parseNetworkResponse(NetworkResponse response) {
+                    String responseString = "";
+                    if (response != null) {
+
+                        responseString = String.valueOf(response.statusCode);
+
+                    }
+                    return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
+                }
+            };
+
+            requestQueue.add(stringRequest);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     private Response.Listener<JSONObject> jsonResponseListener = new Response.Listener<JSONObject>() {
@@ -355,6 +527,12 @@ public class MainActivity extends AppCompatActivity{
 
             saveToInternalStorage();
         }
+
+        if (resultCode == RESULT_OK  && requestCode == REQUEST_LOGIN) {
+            Bundle bundle = data.getExtras();
+            username = bundle.getString("Login.username");
+            password = bundle.getString("Login.pass");
+        }
     }
 
     @Override
@@ -362,6 +540,8 @@ public class MainActivity extends AppCompatActivity{
         outState.putParcelableArrayList("cardlist", mainMovieCards);
         outState.putIntegerArrayList("IDs", IDs);
         outState.putSerializable("moviesToSync", moviesToSync);
+        outState.putSerializable("username", username);
+        outState.putSerializable("pass", password);
         super.onSaveInstanceState(outState);
         Log.v("s", "SAVED");
     }
@@ -388,6 +568,20 @@ public class MainActivity extends AppCompatActivity{
         }
         else {
             moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("username")){
+            username = null;
+        }
+        else {
+            username = savedInstanceState.getString("username");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("pass")){
+            password = null;
+        }
+        else {
+            password = savedInstanceState.getString("pass");
         }
     }
 
