@@ -1,23 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/linearLayoutCardFront"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/linearLayoutCardFront"
     android:layout_width="match_parent"
-    android:background="?android:selectableItemBackground"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:background="?android:selectableItemBackground">
 
-    <android.support.v7.widget.CardView
-        xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    <android.support.v7.widget.CardView xmlns:card_view="http://schemas.android.com/apk/res-auto"
         android:id="@+id/imageCardView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
         android:layout_marginBottom="4dp"
-        android:foreground="?android:attr/selectableItemBackground"
+        android:layout_marginTop="4dp"
         android:clickable="true"
-        app:rippleColor="@color/colorPrimary"
-        >
+        android:foreground="?android:attr/selectableItemBackground"
+        app:rippleColor="@color/colorPrimary">
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/locationCardConstraint"
@@ -28,71 +26,28 @@
             <TextView
                 android:id="@+id/imageCardTitle"
                 android:layout_width="0dp"
-                android:layout_height="23dp"
-                android:layout_marginEnd="8dp"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="16dp"
+                android:onClick="onSearchClick"
                 android:textColor="@android:color/background_dark"
                 android:textSize="20sp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                card_view:layout_constraintEnd_toStartOf="@+id/imageCardDate"
-                android:onClick="onSearchClick"
                 tools:text="Movie Title" />
-
-            <android.support.constraint.ConstraintLayout
-                android:id="@+id/constraintImageLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                card_view:layout_constraintEnd_toEndOf="parent"
-                card_view:layout_constraintStart_toStartOf="parent"
-                card_view:layout_constraintTop_toBottomOf="@+id/imageCardTitle">
-
-                <ImageView
-                    android:id="@+id/editCardCover"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:contentDescription="CardImage"
-                    android:maxHeight="250dp"
-                    android:minHeight="150dp"
-                    android:scaleType="centerCrop"
-                    card_view:layout_constraintEnd_toEndOf="parent"
-                    card_view:layout_constraintStart_toStartOf="parent"
-                    card_view:srcCompat="@color/colorPrimaryDark" />
-
-                <RatingBar
-                    android:id="@+id/ratingBarMain"
-                    style="?android:attr/ratingBarStyleIndicator"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="16dp"
-                    card_view:layout_constraintBottom_toBottomOf="parent"
-                    card_view:layout_constraintEnd_toEndOf="parent"
-                    card_view:layout_constraintHorizontal_bias="0.0"
-                    card_view:layout_constraintStart_toStartOf="parent"
-                    card_view:layout_constraintTop_toTopOf="parent"
-                    card_view:layout_constraintVertical_bias="0.0" />
-
-            </android.support.constraint.ConstraintLayout>
 
             <TextView
                 android:id="@+id/imageCardDesc"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="16dp"
                 android:textColor="@android:color/background_dark"
                 android:textSize="14sp"
-                card_view:layout_constraintBottom_toBottomOf="parent"
-                card_view:layout_constraintEnd_toStartOf="@+id/imageCardEdit"
+                card_view:layout_constraintEnd_toEndOf="parent"
                 card_view:layout_constraintStart_toStartOf="parent"
-                card_view:layout_constraintTop_toBottomOf="@+id/constraintImageLayout"
+                card_view:layout_constraintTop_toBottomOf="@+id/imageCardTitle"
                 tools:text="Movie Description" />
 
             <ImageButton
@@ -100,12 +55,12 @@
                 android:layout_width="32dp"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:layout_marginEnd="16dp"
+                android:layout_marginEnd="8dp"
                 android:layout_marginTop="16dp"
                 android:background="?selectableItemBackgroundBorderless"
                 card_view:layout_constraintBottom_toBottomOf="parent"
                 card_view:layout_constraintEnd_toEndOf="parent"
-                card_view:layout_constraintTop_toBottomOf="@+id/constraintImageLayout"
+                card_view:layout_constraintTop_toBottomOf="@+id/imageCardDesc"
                 card_view:srcCompat="@drawable/ic_delete_black_24dp" />
 
             <ImageButton
@@ -113,12 +68,12 @@
                 android:layout_width="32dp"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="16dp"
                 android:layout_marginTop="16dp"
                 android:background="?selectableItemBackgroundBorderless"
                 card_view:layout_constraintBottom_toBottomOf="parent"
                 card_view:layout_constraintEnd_toStartOf="@+id/imageCardDelete"
-                card_view:layout_constraintTop_toBottomOf="@+id/constraintImageLayout"
+                card_view:layout_constraintTop_toBottomOf="@+id/imageCardDesc"
                 card_view:srcCompat="@drawable/ic_edit_black_24dp" />
 
             <TextView
@@ -131,6 +86,18 @@
                 card_view:layout_constraintBaseline_toBaselineOf="@+id/imageCardTitle"
                 card_view:layout_constraintEnd_toEndOf="parent"
                 tools:text="DD.MM.YYYY" />
+
+            <RatingBar
+                android:id="@+id/ratingBarMain"
+                style="?android:attr/ratingBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                card_view:layout_constraintBottom_toBottomOf="parent"
+                card_view:layout_constraintStart_toStartOf="parent"
+                card_view:layout_constraintTop_toBottomOf="@+id/imageCardDesc" />
 
         </android.support.constraint.ConstraintLayout>
 

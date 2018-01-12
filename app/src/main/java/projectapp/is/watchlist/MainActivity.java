@@ -1,13 +1,9 @@
 package projectapp.is.watchlist;
 
 import android.app.SearchManager;
-import android.app.VoiceInteractor;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Movie;
-import android.media.ThumbnailUtils;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
@@ -15,7 +11,6 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,7 +26,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -39,26 +33,24 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MainActivity extends AppCompatActivity{
-    public final int EDIT_CARD = 3001;
+    public final int ADD_CARD = 3001;
+    private final int EDIT_REQUEST = 5001;
     public final int REQUEST_LOGIN = 0001;
     private final DateFormat DATE_FORMAT = new SimpleDateFormat("dd. MMM, YYYY");
 
@@ -76,12 +68,15 @@ public class MainActivity extends AppCompatActivity{
 
     ArrayList<MainMovieCard> mainMovieCards;
     Stack<MainMovieCard> moviesToSync;
+    Stack<MainMovieCard> moviesToDelete;
     ArrayList<Integer> IDs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        moviesToDelete = new Stack<MainMovieCard>();
 
         if (username == null || password == null){
             Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
@@ -145,7 +140,7 @@ public class MainActivity extends AppCompatActivity{
                 requestQueue.add(request);
                 while (!moviesToSync.empty()){
                     Log.e("Pop", "popped");
-                    final Map<String, String> movieMap = new HashMap<String, String>();
+                    //final Map<String, String> movieMap = new HashMap<String, String>();
                     final MainMovieCard movieCard = moviesToSync.pop();
                     int id = movieCard.getId();
                     if (IDs.contains(id)){
@@ -156,20 +151,12 @@ public class MainActivity extends AppCompatActivity{
                         Log.e("Pop", "ADDING");
                         addMovie(movieCard, id);
                     }
-
-                    /*
+                }
+                while (!moviesToDelete.empty()){
+                    Log.e("Pop", "popped delete");
+                    final MainMovieCard movieCard = moviesToDelete.pop();
                     int id = movieCard.getId();
-                    IDs.add(id);
-                    movieMap.put("id", String.valueOf(id));
-                    movieMap.put("movieTitle", movieCard.getMovieTitle());
-                    movieMap.put("movieDesc", movieCard.getMovieTitle());
-                    movieMap.put("movieDate", movieCard.getDateText());
-                    movieMap.put("movieRating", String.valueOf(movieCard.getRating()));
-
-                    JsonObjectRequest postRequest = new JsonObjectRequest(postUrl, new JSONObject(movieMap), jsonResponseListener, errorListener);
-
-                    requestQueue.add(postRequest);
-                    */
+                    deleteMovie(movieCard, id);
                 }
             }
         });
@@ -180,7 +167,13 @@ public class MainActivity extends AppCompatActivity{
 
         recyclerViewMain = (RecyclerView)findViewById(R.id.recyclerViewMain);
         llm = new LinearLayoutManager(this);
-        rvAdapter = new RVAdapter(mainMovieCards);
+        rvAdapter = new RVAdapter(mainMovieCards, new OnDeleteClick() {
+            @Override
+            public void onDeleteClick(MainMovieCard movieCard) {
+                moviesToDelete.push(movieCard);
+                Log.e("ON DELETE CLICK", "ON DELETE CLICK TRIGGERED " + movieCard.getMovieTitle());
+            }
+        });
         recyclerViewMain.setLayoutManager(llm);
         recyclerViewMain.setAdapter(rvAdapter);
         fab = findViewById(R.id.fab);
@@ -202,7 +195,7 @@ public class MainActivity extends AppCompatActivity{
             public void onClick(View view) {
                 Intent intent = new Intent();
                 intent.setClass(MainActivity.this, AddMovieActivity.class);
-                startActivityForResult(intent, EDIT_CARD);
+                startActivityForResult(intent, ADD_CARD);
             }
         });
     }
@@ -276,6 +269,64 @@ public class MainActivity extends AppCompatActivity{
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    public void deleteMovie(final MainMovieCard movieCard, final int id) {
+
+        /*JSONObject jsonBody = new JSONObject();
+
+        jsonBody.put("id", id);
+        jsonBody.put("movieTitle", movieCard.getMovieTitle());
+        jsonBody.put("movieDesc", movieCard.getMovieDescription());
+        jsonBody.put("movieDate", movieCard.getDateText());
+        jsonBody.put("movieRating", movieCard.getRating());*/
+
+        //final String mRequestBody = jsonBody.toString();
+        String url = postUrl + "/" + String.valueOf(id);
+
+        StringRequest stringRequest = new StringRequest(Request.Method.DELETE, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                IDs.remove(new Integer(id));
+                Log.i("LOG_VOLLEY", response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                moviesToDelete.push(movieCard);
+                Log.e("LOG_VOLLEY", error.toString());
+            }
+        }) {
+            @Override
+            public String getBodyContentType() {
+                return "application/json; charset=utf-8";
+            }
+
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                super.getHeaders();
+                Map<String, String> headers = new HashMap<>();
+                //String credentials = "admin:test";
+                String credentials = username + ":" + password;
+                Log.e("LOGIN INFO", credentials);
+                String auth = credentials;//Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
+                //headers.put("Content-Type", "application/json");
+                headers.put("Authorization", auth);
+                return headers;
+            }
+
+            @Override
+            protected Response<String> parseNetworkResponse(NetworkResponse response) {
+                String responseString = "";
+                if (response != null) {
+
+                    responseString = String.valueOf(response.statusCode);
+
+                }
+                return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
+            }
+        };
+        requestQueue.add(stringRequest);
     }
 
     public void updateMovie(final MainMovieCard movieCard, int id) {
@@ -512,7 +563,7 @@ public class MainActivity extends AppCompatActivity{
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode == RESULT_OK  && requestCode == EDIT_CARD) {
+        if (resultCode == RESULT_OK  && requestCode == ADD_CARD) {
             Bundle bundle = data.getExtras();
             String title = bundle.getString("Edit.editTitle");
             String description = bundle.getString("Edit.editDesc");
@@ -523,6 +574,23 @@ public class MainActivity extends AppCompatActivity{
             MainMovieCard movieCard = new MainMovieCard(randomNum,title, description, currentDate, rating);
             mainMovieCards.add(0, movieCard);
             moviesToSync.push(movieCard);
+            (recyclerViewMain.getAdapter()).notifyDataSetChanged();
+
+            saveToInternalStorage();
+        }
+
+        if (resultCode == RESULT_OK  && requestCode == EDIT_REQUEST) {
+            Bundle bundle = data.getExtras();
+            String title = bundle.getString("Edit.editTitle");
+            String description = bundle.getString("Edit.editDesc");
+            float rating = bundle.getFloat("Edit.rating");
+            int position = bundle.getInt("position");
+
+            mainMovieCards.get(position).setMovieTitle(title);
+            mainMovieCards.get(position).setMovieDescription(description);
+            mainMovieCards.get(position).setRating(rating);
+
+            moviesToSync.push(mainMovieCards.get(position));
             (recyclerViewMain.getAdapter()).notifyDataSetChanged();
 
             saveToInternalStorage();

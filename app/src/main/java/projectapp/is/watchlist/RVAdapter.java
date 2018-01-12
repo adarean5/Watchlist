@@ -1,5 +1,6 @@
 package projectapp.is.watchlist;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.widget.CardView;
@@ -8,6 +9,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RatingBar;
@@ -26,7 +28,6 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
         CardView cv;
         TextView movieTitle;
         TextView movieDate;
-        ImageView movieMainImage;
         TextView movieDesc;
         RatingBar ratingBar;
 
@@ -39,33 +40,21 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
             cv = (CardView) itemView.findViewById(R.id.imageCardView);
             movieTitle = (TextView) itemView.findViewById(R.id.imageCardTitle);
             movieDate = (TextView) itemView.findViewById(R.id.imageCardDate);
-            movieMainImage = (ImageView) itemView.findViewById(R.id.editCardCover);
             movieDesc = (TextView) itemView.findViewById(R.id.imageCardDesc);
             ratingBar = (RatingBar) itemView.findViewById(R.id.ratingBarMain);
 
             deleteCardButton = (ImageButton) itemView.findViewById(R.id.imageCardDelete);
             editCardButton = (ImageButton) itemView.findViewById(R.id.imageCardEdit);
-
-            /*cv.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Intent intent = new Intent();
-                    intent.setClass(itemView.getContext(), SecondActivity.class);
-                    Bundle bundle = new Bundle();
-                    bundle.putString("imageFilePath", imageFilePaths.get(i));
-                    bundle.putInt("postition", i);
-                    intent.putExtras(bundle);
-                    itemView.getContext().startActivity(intent);
-                }
-            });*/
         }
     }
 
     List<MainMovieCard> mainMovieCards;
-    //BitmapDecoder decoder;
+    private final int EDIT_REQUEST = 5001;
+    private OnDeleteClick onDeleteCallback;
 
-    RVAdapter(List<MainMovieCard> mainMovieCards){
+    RVAdapter(List<MainMovieCard> mainMovieCards, OnDeleteClick onDeleteClick){
         this.mainMovieCards = mainMovieCards;
+        this.onDeleteCallback = onDeleteClick;
         //this.decoder = new BitmapDecoder();
     }
 
@@ -102,6 +91,7 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
             @Override
             public void onClick(View view) {
                 Log.v("press", "DELETE PRESSED" + mainMovieCards.get(position));
+                onDeleteCallback.onDeleteClick(mainMovieCards.get(position));
                 mainMovieCards.remove(position);
                 notifyItemRemoved(position);
                 notifyItemRangeChanged(position, mainMovieCards.size());
@@ -119,15 +109,16 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
                 //bundle.putString("movieCoverImagePath", mainMovieCards.get(position).getImagePath());
                 bundle.putString("movieDesc", mainMovieCards.get(position).getMovieDescription());
                 bundle.putString("dateText", mainMovieCards.get(position).getDateText());
+                bundle.putFloat("movieRating", mainMovieCards.get(position).getRating());
                 bundle.putInt("position", position);
                 //String parent = mainMovieCards.get(position).getParentImageFolder();
                 //bundle.putString("parentImageFolder", mainMovieCards.get(position).getParentImageFolder());
                 intent.putExtras(bundle);
-                view.getContext().startActivity(intent);
+                ((Activity) view.getContext()).startActivityForResult(intent, EDIT_REQUEST);
             }
         });
 
-        holder.cv.setOnClickListener(new View.OnClickListener() {
+        /*holder.cv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent();
@@ -137,20 +128,7 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
                 intent.putExtras(bundle);
                 view.getContext().startActivity(intent);
             }
-        });
-
-        holder.movieMainImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                holder.movieMainImage.setVisibility(View.GONE);
-            }
-        });
-        holder.editCardButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                holder.movieMainImage.setVisibility(View.VISIBLE);
-            }
-        });
+        });*/
     }
 
     @Override

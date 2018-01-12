@@ -51,6 +51,18 @@ public class MainMovieCard implements Parcelable, Serializable {
         return dateText;
     }
 
+    public void setMovieDescription(String movieDescription) {
+        this.movieDescription = movieDescription;
+    }
+
+    public void setMovieTitle(String movieTitle) {
+        this.movieTitle = movieTitle;
+    }
+
+    public void setRating(float rating) {
+        this.rating = rating;
+    }
+
     @Override
     public int describeContents() {
         return 0;
