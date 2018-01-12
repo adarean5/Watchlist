@@ -54,17 +54,24 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent">
 
-                <EditText
-                    android:id="@+id/imageCardTitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginRight="16dp"
+                <android.support.design.widget.TextInputLayout
+                    android:layout_width="match_parent"
                     android:layout_weight="1"
-                    android:hint="Enter title"
-                    android:maxLines="1"
-                    android:textColor="@android:color/background_dark"
-                    android:textSize="20sp"
-                    tools:text="Journey Title" />
+                    android:layout_height="wrap_content">
+
+                    <EditText
+                        android:id="@+id/imageCardTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginRight="16dp"
+                        android:layout_weight="1"
+                        android:hint="Enter title"
+                        android:maxLines="1"
+                        android:textColor="@android:color/background_dark"
+                        android:textSize="20sp" />
+
+                </android.support.design.widget.TextInputLayout>
+
 
                 <TextView
                     android:id="@+id/imageCardDate"
@@ -78,21 +85,29 @@
 
             </LinearLayout>
 
-            <EditText
-                android:id="@+id/imageCardDesc"
+            <android.support.design.widget.TextInputLayout
                 android:layout_width="match_parent"
-                android:layout_height="37dp"
-                android:layout_margin="16dp"
                 android:layout_weight="1"
-                android:hint="Optional: Enter description"
-                android:maxLines="6"
-                android:textColor="@android:color/background_dark"
-                android:textSize="14sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toStartOf="parent"
-                tools:layout_editor_absoluteY="151dp"
-                tools:text="Journey Description" />
+                android:layout_height="wrap_content">
+
+                <EditText
+                    android:id="@+id/imageCardDesc"
+                    android:layout_width="match_parent"
+                    android:layout_height="37dp"
+                    android:layout_margin="16dp"
+                    android:layout_weight="1"
+                    android:hint="Optional: Enter description"
+                    android:maxLines="6"
+                    android:textColor="@android:color/background_dark"
+                    android:textSize="14sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintStart_toStartOf="parent"
+                    tools:layout_editor_absoluteY="151dp" />
+
+            </android.support.design.widget.TextInputLayout>
+
+
 
             <RatingBar
                 android:id="@+id/addRatingBar"

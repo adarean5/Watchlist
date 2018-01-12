@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Movie;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -15,6 +16,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
@@ -59,6 +61,8 @@ public class MainActivity extends AppCompatActivity{
     private String username;
     private String password;
 
+    private android.support.v7.widget.Toolbar toolbar;
+
     RecyclerView recyclerViewMain;
     LinearLayoutManager llm;
     FloatingActionButton fab;
@@ -70,37 +74,37 @@ public class MainActivity extends AppCompatActivity{
     Stack<MainMovieCard> moviesToSync;
     Stack<MainMovieCard> moviesToDelete;
     ArrayList<Integer> IDs;
+    Button buttonLogOut;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        onRestore(savedInstanceState);
 
-        moviesToDelete = new Stack<MainMovieCard>();
+        //moviesToDelete = new Stack<MainMovieCard>();
 
-        if (username == null || password == null){
+        /*if (username == null || password == null){
             Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
             startActivityForResult(intent, REQUEST_LOGIN);
         }
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbarMain);
-        setSupportActionBar(toolbar);
+        toolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbarMain);
+        if (toolbar != null)
+            setSupportActionBar(toolbar);
 
         moviesToSync = new Stack<MainMovieCard>();
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist")){
-            mainMovieCards = new ArrayList<>();
             Log.v("t", "NEW");
             mainMovieCards = readFromInternalStorage();
         }
-
         else{
             mainMovieCards = savedInstanceState.getParcelableArrayList("cardlist");
             Log.v("r", "RESTORED");
         }
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("IDs")){
-            IDs = new ArrayList<>();
             IDs = readIDs();
         }
         else {
@@ -108,11 +112,17 @@ public class MainActivity extends AppCompatActivity{
         }
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync")){
-            moviesToSync = new Stack<MainMovieCard>();
             moviesToSync = readToSync();
         }
         else {
             moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToDelete")){
+            moviesToDelete = readToDelete();
+        }
+        else {
+            moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
         }
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("username")){
@@ -127,7 +137,7 @@ public class MainActivity extends AppCompatActivity{
         }
         else {
             password = savedInstanceState.getString("pass");
-        }
+        }*/
 
         requestQueue = Volley.newRequestQueue(getApplicationContext());
 
@@ -456,17 +466,61 @@ public class MainActivity extends AppCompatActivity{
         }
     };
 
-    public void onSearchClick(View v)
-    {
-        try {
-            Intent intent = new Intent(Intent.ACTION_WEB_SEARCH);
-            String term = "Avengers"; //editTextInput.getText().toString();
-            intent.putExtra(SearchManager.QUERY, term);
-            startActivity(intent);
-        } catch (Exception e) {
-            // TODO: handle exception
+    private void onRestore(Bundle savedInstanceState){
+        if (username == null || password == null){
+            Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
+            startActivityForResult(intent, REQUEST_LOGIN);
         }
 
+        toolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbarMain);
+        if (toolbar != null)
+            setSupportActionBar(toolbar);
+
+        moviesToSync = new Stack<MainMovieCard>();
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist")){
+            Log.v("t", "NEW");
+            mainMovieCards = readFromInternalStorage();
+        }
+        else{
+            mainMovieCards = savedInstanceState.getParcelableArrayList("cardlist");
+            Log.v("r", "RESTORED");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("IDs")){
+            IDs = readIDs();
+        }
+        else {
+            IDs = savedInstanceState.getIntegerArrayList("IDs");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync")){
+            moviesToSync = readToSync();
+        }
+        else {
+            moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToDelete")){
+            moviesToDelete = readToDelete();
+        }
+        else {
+            moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("username")){
+            username = null;
+        }
+        else {
+            username = savedInstanceState.getString("username");
+        }
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("pass")){
+            password = null;
+        }
+        else {
+            password = savedInstanceState.getString("pass");
+        }
     }
 
     public void saveToInternalStorage() {
@@ -489,6 +543,14 @@ public class MainActivity extends AppCompatActivity{
             fos = this.openFileOutput("moviesToSync", Context.MODE_PRIVATE);
             of = new ObjectOutputStream(fos);
             of.writeObject(moviesToSync);
+            of.flush();
+            of.close();
+            fos.close();
+            Log.v("iw", "Written to internal storage");
+
+            fos = this.openFileOutput("moviesToDelete", Context.MODE_PRIVATE);
+            of = new ObjectOutputStream(fos);
+            of.writeObject(moviesToDelete);
             of.flush();
             of.close();
             fos.close();
@@ -555,6 +617,25 @@ public class MainActivity extends AppCompatActivity{
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+        return toReturn;
+    }
+
+    public Stack<MainMovieCard> readToDelete() {
+        Stack<MainMovieCard> toReturn = new Stack<MainMovieCard>();
+        FileInputStream fis;
+        try {
+            fis = this.openFileInput("moviesToDelete");
+            ObjectInputStream oi = new ObjectInputStream(fis);
+            toReturn = (Stack<MainMovieCard>) oi.readObject();
+            oi.close();
+            Log.v("ir", "Read from internal storage");
+        } catch (FileNotFoundException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (IOException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
 
         return toReturn;
     }
@@ -603,11 +684,14 @@ public class MainActivity extends AppCompatActivity{
         }
     }
 
+
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         outState.putParcelableArrayList("cardlist", mainMovieCards);
         outState.putIntegerArrayList("IDs", IDs);
         outState.putSerializable("moviesToSync", moviesToSync);
+        outState.putSerializable("moviesToDelete", moviesToDelete);
         outState.putSerializable("username", username);
         outState.putSerializable("pass", password);
         super.onSaveInstanceState(outState);
@@ -617,40 +701,36 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist")){
+        onRestore(savedInstanceState);
+        /*if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist"))
             mainMovieCards = new ArrayList<>();
-        }
-        else{
+        else
             mainMovieCards = savedInstanceState.getParcelableArrayList("cardlist");
-        }
 
-        if (savedInstanceState == null || !savedInstanceState.containsKey("IDs")){
+        if (savedInstanceState == null || !savedInstanceState.containsKey("IDs"))
             IDs = new ArrayList<>();
-        }
-        else {
+        else
             IDs = savedInstanceState.getIntegerArrayList("IDs");
-        }
 
-        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync")){
+        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync"))
             moviesToSync = new Stack<MainMovieCard>();
-        }
-        else {
+        else
             moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
-        }
 
-        if (savedInstanceState == null || !savedInstanceState.containsKey("username")){
+        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToDelete"))
+            moviesToDelete= new Stack<MainMovieCard>();
+        else
+            moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToDelete");
+
+        if (savedInstanceState == null || !savedInstanceState.containsKey("username"))
             username = null;
-        }
-        else {
+        else
             username = savedInstanceState.getString("username");
-        }
 
-        if (savedInstanceState == null || !savedInstanceState.containsKey("pass")){
+        if (savedInstanceState == null || !savedInstanceState.containsKey("pass"))
             password = null;
-        }
-        else {
-            password = savedInstanceState.getString("pass");
-        }
+        else
+            password = savedInstanceState.getString("pass");*/
     }
 
     @Override
@@ -670,6 +750,13 @@ public class MainActivity extends AppCompatActivity{
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             return true;
+        }
+
+        if (id == R.id.action_logOut){
+            username = null;
+            password = null;
+            Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
+            startActivityForResult(intent, REQUEST_LOGIN);
         }
         return super.onOptionsItemSelected(item);
     }
