@@ -622,6 +622,10 @@ public class MainActivity extends AppCompatActivity{
                 e.printStackTrace();
             }
         }
+        else {
+            Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
+            startActivityForResult(intent, REQUEST_LOGIN);
+        }
 
     }
 
