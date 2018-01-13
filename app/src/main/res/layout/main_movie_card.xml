@@ -11,8 +11,7 @@
         android:id="@+id/imageCardView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
-        android:layout_marginTop="4dp"
+        android:layout_margin="4dp"
         android:clickable="true"
         android:foreground="?android:attr/selectableItemBackground"
         app:rippleColor="@color/colorPrimary">
@@ -29,7 +28,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="16dp"
-                android:onClick="onSearchClick"
                 android:textColor="@android:color/background_dark"
                 android:textSize="20sp"
                 app:layout_constraintStart_toStartOf="parent"

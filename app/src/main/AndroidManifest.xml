@@ -27,7 +27,9 @@
             android:name=".AddMovieActivity"
             android:parentActivityName=".MainActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar">
+
+        </activity>
         <activity
             android:name=".SecondActivity"
             android:parentActivityName=".MainActivity"
