@@ -55,7 +55,6 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
     RVAdapter(List<MainMovieCard> mainMovieCards, OnDeleteClick onDeleteClick){
         this.mainMovieCards = mainMovieCards;
         this.onDeleteCallback = onDeleteClick;
-        //this.decoder = new BitmapDecoder();
     }
 
     public void removeCard (int position){
@@ -85,8 +84,6 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
         holder.movieDate.setText(date);
         holder.ratingBar.setRating(mainMovieCards.get(position).getRating());
 
-        //holder.movieMainImage.setVisibility(View.GONE);
-
         holder.deleteCardButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -106,29 +103,14 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.CardViewHolder> {
                 intent.setClass(view.getContext(), AddMovieActivity.class);
                 Bundle bundle = new Bundle();
                 bundle.putString("movieTitle", mainMovieCards.get(position).getMovieTitle());
-                //bundle.putString("movieCoverImagePath", mainMovieCards.get(position).getImagePath());
                 bundle.putString("movieDesc", mainMovieCards.get(position).getMovieDescription());
                 bundle.putString("dateText", mainMovieCards.get(position).getDateText());
                 bundle.putFloat("movieRating", mainMovieCards.get(position).getRating());
                 bundle.putInt("position", position);
-                //String parent = mainMovieCards.get(position).getParentImageFolder();
-                //bundle.putString("parentImageFolder", mainMovieCards.get(position).getParentImageFolder());
                 intent.putExtras(bundle);
                 ((Activity) view.getContext()).startActivityForResult(intent, EDIT_REQUEST);
             }
         });
-
-        /*holder.cv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent();
-                intent.setClass(view.getContext(), SecondActivity.class);
-                Bundle bundle = new Bundle();
-                bundle.putString("movieTitle", mainMovieCards.get(position).getMovieTitle());
-                intent.putExtras(bundle);
-                view.getContext().startActivity(intent);
-            }
-        });*/
     }
 
     @Override

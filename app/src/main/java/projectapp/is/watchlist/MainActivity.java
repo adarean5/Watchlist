@@ -35,6 +35,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -42,6 +43,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -74,7 +76,6 @@ public class MainActivity extends AppCompatActivity{
     Stack<MainMovieCard> moviesToSync;
     Stack<MainMovieCard> moviesToDelete;
     ArrayList<Integer> IDs;
-    Button buttonLogOut;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,65 +83,7 @@ public class MainActivity extends AppCompatActivity{
         setContentView(R.layout.activity_main);
         onRestore(savedInstanceState);
 
-        //moviesToDelete = new Stack<MainMovieCard>();
-
-        /*if (username == null || password == null){
-            Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
-            startActivityForResult(intent, REQUEST_LOGIN);
-        }
-
-        toolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbarMain);
-        if (toolbar != null)
-            setSupportActionBar(toolbar);
-
-        moviesToSync = new Stack<MainMovieCard>();
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist")){
-            Log.v("t", "NEW");
-            mainMovieCards = readFromInternalStorage();
-        }
-        else{
-            mainMovieCards = savedInstanceState.getParcelableArrayList("cardlist");
-            Log.v("r", "RESTORED");
-        }
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("IDs")){
-            IDs = readIDs();
-        }
-        else {
-            IDs = savedInstanceState.getIntegerArrayList("IDs");
-        }
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync")){
-            moviesToSync = readToSync();
-        }
-        else {
-            moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
-        }
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToDelete")){
-            moviesToDelete = readToDelete();
-        }
-        else {
-            moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
-        }
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("username")){
-            username = null;
-        }
-        else {
-            username = savedInstanceState.getString("username");
-        }
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("pass")){
-            password = null;
-        }
-        else {
-            password = savedInstanceState.getString("pass");
-        }*/
-
         requestQueue = Volley.newRequestQueue(getApplicationContext());
-
 
         swipeRefreshLayout = findViewById(R.id.swipeMainRefresh);
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -150,7 +93,6 @@ public class MainActivity extends AppCompatActivity{
                 requestQueue.add(request);
                 while (!moviesToSync.empty()){
                     Log.e("Pop", "popped");
-                    //final Map<String, String> movieMap = new HashMap<String, String>();
                     final MainMovieCard movieCard = moviesToSync.pop();
                     int id = movieCard.getId();
                     if (IDs.contains(id)){
@@ -244,11 +186,9 @@ public class MainActivity extends AppCompatActivity{
                 public Map<String, String> getHeaders() throws AuthFailureError {
                     super.getHeaders();
                     Map<String, String> headers = new HashMap<>();
-                    //String credentials = "admin:test";
                     String credentials = username + ":" + password;
                     Log.e("LOGIN INFO", credentials);
-                    String auth = credentials;//Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
-                    //headers.put("Content-Type", "application/json");
+                    String auth = credentials;
                     headers.put("Authorization", auth);
                     return headers;
                 }
@@ -267,9 +207,7 @@ public class MainActivity extends AppCompatActivity{
                 protected Response<String> parseNetworkResponse(NetworkResponse response) {
                     String responseString = "";
                     if (response != null) {
-
                         responseString = String.valueOf(response.statusCode);
-
                     }
                     return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
                 }
@@ -282,16 +220,6 @@ public class MainActivity extends AppCompatActivity{
     }
 
     public void deleteMovie(final MainMovieCard movieCard, final int id) {
-
-        /*JSONObject jsonBody = new JSONObject();
-
-        jsonBody.put("id", id);
-        jsonBody.put("movieTitle", movieCard.getMovieTitle());
-        jsonBody.put("movieDesc", movieCard.getMovieDescription());
-        jsonBody.put("movieDate", movieCard.getDateText());
-        jsonBody.put("movieRating", movieCard.getRating());*/
-
-        //final String mRequestBody = jsonBody.toString();
         String url = postUrl + "/" + String.valueOf(id);
 
         StringRequest stringRequest = new StringRequest(Request.Method.DELETE, url, new Response.Listener<String>() {
@@ -316,11 +244,9 @@ public class MainActivity extends AppCompatActivity{
             public Map<String, String> getHeaders() throws AuthFailureError {
                 super.getHeaders();
                 Map<String, String> headers = new HashMap<>();
-                //String credentials = "admin:test";
                 String credentials = username + ":" + password;
                 Log.e("LOGIN INFO", credentials);
-                String auth = credentials;//Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
-                //headers.put("Content-Type", "application/json");
+                String auth = credentials;
                 headers.put("Authorization", auth);
                 return headers;
             }
@@ -329,9 +255,7 @@ public class MainActivity extends AppCompatActivity{
             protected Response<String> parseNetworkResponse(NetworkResponse response) {
                 String responseString = "";
                 if (response != null) {
-
                     responseString = String.valueOf(response.statusCode);
-
                 }
                 return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
             }
@@ -342,7 +266,6 @@ public class MainActivity extends AppCompatActivity{
     public void updateMovie(final MainMovieCard movieCard, int id) {
         try {
             JSONObject jsonBody = new JSONObject();
-            //jsonBody.put("id", id);
             jsonBody.put("movieTitle", movieCard.getMovieTitle());
             jsonBody.put("movieDesc", movieCard.getMovieDescription());
             jsonBody.put("movieDate", movieCard.getDateText());
@@ -354,7 +277,6 @@ public class MainActivity extends AppCompatActivity{
             StringRequest stringRequest = new StringRequest(Request.Method.PUT, url, new Response.Listener<String>() {
                 @Override
                 public void onResponse(String response) {
-                    //IDs.add(id);
                     Log.i("LOG_VOLLEY", response);
                 }
             }, new Response.ErrorListener() {
@@ -373,11 +295,9 @@ public class MainActivity extends AppCompatActivity{
                 public Map<String, String> getHeaders() throws AuthFailureError {
                     super.getHeaders();
                     Map<String, String> headers = new HashMap<>();
-                    //String credentials = "admin:test";
                     String credentials = username + ":" + password;
                     Log.e("LOGIN INFO", credentials);
-                    String auth = credentials;//Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
-                    //headers.put("Content-Type", "application/json");
+                    String auth = credentials;
                     headers.put("Authorization", auth);
                     return headers;
                 }
@@ -409,13 +329,6 @@ public class MainActivity extends AppCompatActivity{
             e.printStackTrace();
         }
     }
-
-    private Response.Listener<JSONObject> jsonResponseListener = new Response.Listener<JSONObject>() {
-        @Override
-        public void onResponse(JSONObject response) {
-            Log.e("POST RESPONSE", response.toString());
-        }
-    };
 
     private Response.Listener<JSONArray> jsonArrayListener = new Response.Listener<JSONArray>() {
         @Override
@@ -453,13 +366,10 @@ public class MainActivity extends AppCompatActivity{
                 try {
                     String res = new String(response.data,
                             HttpHeaderParser.parseCharset(response.headers, "utf-8"));
-                    // Now you can use any deserializer to make sense of data
                     JSONObject obj = new JSONObject(res);
                 } catch (UnsupportedEncodingException e1) {
-                    // Couldn't properly decode data to string
                     e1.printStackTrace();
                 } catch (JSONException e2) {
-                    // returned data is not JSONObject?
                     e2.printStackTrace();
                 }
             }
@@ -467,11 +377,6 @@ public class MainActivity extends AppCompatActivity{
     };
 
     private void onRestore(Bundle savedInstanceState){
-        if (username == null || password == null){
-            Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
-            startActivityForResult(intent, REQUEST_LOGIN);
-        }
-
         toolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbarMain);
         if (toolbar != null)
             setSupportActionBar(toolbar);
@@ -508,18 +413,19 @@ public class MainActivity extends AppCompatActivity{
             moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
         }
 
-        if (savedInstanceState == null || !savedInstanceState.containsKey("username")){
-            username = null;
+        if (savedInstanceState == null || !savedInstanceState.containsKey("username") || !savedInstanceState.containsKey("pass")){
+            String[] loginInfo = readLogin();
+            username = loginInfo[0];
+            password = loginInfo[1];
         }
         else {
             username = savedInstanceState.getString("username");
+            password = savedInstanceState.getString("pass");
         }
 
-        if (savedInstanceState == null || !savedInstanceState.containsKey("pass")){
-            password = null;
-        }
-        else {
-            password = savedInstanceState.getString("pass");
+        if (username == null || password == null){
+            Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
+            startActivityForResult(intent, REQUEST_LOGIN);
         }
     }
 
@@ -640,6 +546,29 @@ public class MainActivity extends AppCompatActivity{
         return toReturn;
     }
 
+
+    public String[] readLogin() {
+        String[] toReturn = new String[2];
+        FileInputStream fis;
+        try {
+            fis = this.openFileInput("LoginData");
+            ObjectInputStream oi = new ObjectInputStream(fis);
+            toReturn[0] = (String) oi.readObject();
+            toReturn[1] = (String) oi.readObject();
+            oi.close();
+            Log.v("ir", "Read from internal storage");
+        } catch (FileNotFoundException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (IOException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return toReturn;
+    }
+
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -651,7 +580,6 @@ public class MainActivity extends AppCompatActivity{
             String currentDate = bundle.getString("Edit.dateText");
             float rating = bundle.getFloat("Edit.rating");
             int randomNum = ThreadLocalRandom.current().nextInt(1000, 9999);
-            //IDs.add(randomNum);
             MainMovieCard movieCard = new MainMovieCard(randomNum,title, description, currentDate, rating);
             mainMovieCards.add(0, movieCard);
             moviesToSync.push(movieCard);
@@ -681,7 +609,20 @@ public class MainActivity extends AppCompatActivity{
             Bundle bundle = data.getExtras();
             username = bundle.getString("Login.username");
             password = bundle.getString("Login.pass");
+            try {
+                FileOutputStream fos = this.openFileOutput("LoginData", Context.MODE_PRIVATE);
+                ObjectOutputStream of = new ObjectOutputStream(fos);
+                of.writeObject(username);
+                of.writeObject(password);
+                of.flush();
+                of.close();
+                fos.close();
+                Log.v("iw", "Written to internal storage");
+            } catch (IOException e){
+                e.printStackTrace();
+            }
         }
+
     }
 
 
@@ -702,35 +643,6 @@ public class MainActivity extends AppCompatActivity{
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         onRestore(savedInstanceState);
-        /*if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist"))
-            mainMovieCards = new ArrayList<>();
-        else
-            mainMovieCards = savedInstanceState.getParcelableArrayList("cardlist");
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("IDs"))
-            IDs = new ArrayList<>();
-        else
-            IDs = savedInstanceState.getIntegerArrayList("IDs");
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToSync"))
-            moviesToSync = new Stack<MainMovieCard>();
-        else
-            moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToDelete"))
-            moviesToDelete= new Stack<MainMovieCard>();
-        else
-            moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToDelete");
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("username"))
-            username = null;
-        else
-            username = savedInstanceState.getString("username");
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("pass"))
-            password = null;
-        else
-            password = savedInstanceState.getString("pass");*/
     }
 
     @Override
@@ -755,8 +667,12 @@ public class MainActivity extends AppCompatActivity{
         if (id == R.id.action_logOut){
             username = null;
             password = null;
+
+            deleteFile("LoginData");
+
             Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
             startActivityForResult(intent, REQUEST_LOGIN);
+            finish();
         }
         return super.onOptionsItemSelected(item);
     }
