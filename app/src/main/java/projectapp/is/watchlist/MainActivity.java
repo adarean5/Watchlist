@@ -46,9 +46,12 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -74,8 +77,8 @@ public class MainActivity extends AppCompatActivity{
     RequestQueue requestQueue;
 
     ArrayList<MainMovieCard> mainMovieCards;
-    Stack<MainMovieCard> tmpMovies;
-    Stack<MainMovieCard> moviesToSync;
+    //Stack<MainMovieCard> tmpMovies;
+    ArrayDeque<MainMovieCard> moviesToSync;
     Stack<MainMovieCard> moviesToDelete;
     ArrayList<Integer> IDs;
     FileInputStream fis;
@@ -92,28 +95,31 @@ public class MainActivity extends AppCompatActivity{
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                sent = tmpMovies.size();
-                while (!moviesToSync.empty()){
-                    Log.e("Pop", "popped");
-                    final MainMovieCard movieCard = moviesToSync.pop();
-                    int id = movieCard.getId();
-                    if (IDs.contains(id)){
-                        Log.e("Pop", "UPDATING");
-                        updateMovie(movieCard, id);
+                sent = moviesToSync.size() + moviesToDelete.size();
+                if (sent == 0){
+                    JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
+                    requestQueue.add(request);
+                }else {
+                    while (!moviesToSync.isEmpty()){
+                        Log.e("Pop", "popped");
+                        final MainMovieCard movieCard = moviesToSync.removeLast();
+                        int id = movieCard.getId();
+                        if (IDs.contains(id)){
+                            Log.e("Pop", "UPDATING");
+                            updateMovie(movieCard, id);
+                        }
+                        else{
+                            Log.e("Pop", "ADDING");
+                            addMovie(movieCard, id);
+                        }
                     }
-                    else{
-                        Log.e("Pop", "ADDING");
-                        addMovie(movieCard, id);
+                    while (!moviesToDelete.empty()){
+                        Log.e("Pop", "popped delete");
+                        final MainMovieCard movieCard = moviesToDelete.pop();
+                        int id = movieCard.getId();
+                        deleteMovie(movieCard, id);
                     }
                 }
-                while (!moviesToDelete.empty()){
-                    Log.e("Pop", "popped delete");
-                    final MainMovieCard movieCard = moviesToDelete.pop();
-                    int id = movieCard.getId();
-                    deleteMovie(movieCard, id);
-                }
-                JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
-                requestQueue.add(request);
             }
         });
         swipeRefreshLayout.setColorSchemeResources(
@@ -242,6 +248,11 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onResponse(String response) {
                 IDs.remove(new Integer(id));
+                sent--;
+                if (sent == 0){
+                    JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
+                    requestQueue.add(request);
+                }
                 Log.i("LOG_VOLLEY", response);
             }
         }, new Response.ErrorListener() {
@@ -293,6 +304,11 @@ public class MainActivity extends AppCompatActivity{
             StringRequest stringRequest = new StringRequest(Request.Method.PUT, url, new Response.Listener<String>() {
                 @Override
                 public void onResponse(String response) {
+                    sent--;
+                    if (sent == 0){
+                        JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
+                        requestQueue.add(request);
+                    }
                     Log.i("LOG_VOLLEY", response);
                 }
             }, new Response.ErrorListener() {
@@ -350,28 +366,30 @@ public class MainActivity extends AppCompatActivity{
         @Override
         public void onResponse(JSONArray response) {
             ArrayList<HashMap<String, String>> data = new ArrayList<>();
+            ArrayList<Integer> newIDs = new ArrayList<Integer>();
+            ArrayList<MainMovieCard> newMainMovieCards = new ArrayList<MainMovieCard>();
             for (int i = 0; i < response.length(); i++) {
                 try {
                     JSONObject object = response.getJSONObject(i);
                     int id = object.getInt("id");
-                    if (!IDs.contains(id)){
-                        String movieName = object.getString("movieTitle");
-                        String movieDesc = object.getString("movieDesc");
-                        String movieDate = object.getString("movieDate");
-                        float rating = (float) object.getDouble("movieRating");
+                    //if (!IDs.contains(id)){
+                    String movieName = object.getString("movieTitle");
+                    String movieDesc = object.getString("movieDesc");
+                    String movieDate = object.getString("movieDate");
+                    float rating = (float) object.getDouble("movieRating");
 
-                        mainMovieCards.add(0, new MainMovieCard(id, movieName, movieDesc, movieDate, rating));
-                        IDs.add(id);
-                    }
+                    newMainMovieCards.add(0, new MainMovieCard(id, movieName, movieDesc, movieDate, rating));
+                    newIDs.add(id);
+                    //}
 
                 } catch (JSONException e) {
                     e.printStackTrace();
                     break;
                 }
             }
-            while (!tmpMovies.isEmpty()){
-                mainMovieCards.remove(tmpMovies.pop());
-            }
+            mainMovieCards.clear();
+            mainMovieCards.addAll(newMainMovieCards);
+            IDs = newIDs;
             (recyclerViewMain.getAdapter()).notifyDataSetChanged();
             swipeRefreshLayout.setRefreshing(false);
         }
@@ -400,7 +418,7 @@ public class MainActivity extends AppCompatActivity{
         if (toolbar != null)
             setSupportActionBar(toolbar);
 
-        moviesToSync = new Stack<MainMovieCard>();
+        moviesToSync = new ArrayDeque<>();
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("cardlist")){
             Log.v("t", "NEW");
@@ -422,7 +440,7 @@ public class MainActivity extends AppCompatActivity{
             moviesToSync = readToSync();
         }
         else {
-            moviesToSync = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
+            moviesToSync = (ArrayDeque<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
         }
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("moviesToDelete")){
@@ -430,13 +448,6 @@ public class MainActivity extends AppCompatActivity{
         }
         else {
             moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
-        }
-
-        if (savedInstanceState == null || !savedInstanceState.containsKey("tmpCards")){
-            tmpMovies = readTmp();
-        }
-        else {
-            tmpMovies = (Stack<MainMovieCard>) savedInstanceState.getSerializable("tmpCards");
         }
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("username") || !savedInstanceState.containsKey("pass")){
@@ -475,14 +486,6 @@ public class MainActivity extends AppCompatActivity{
             fos = this.openFileOutput("moviesToSync", Context.MODE_PRIVATE);
             of = new ObjectOutputStream(fos);
             of.writeObject(moviesToSync);
-            of.flush();
-            of.close();
-            fos.close();
-            Log.v("iw", "Written to internal storage");
-
-            fos = this.openFileOutput("tmpCards", Context.MODE_PRIVATE);
-            of = new ObjectOutputStream(fos);
-            of.writeObject(tmpMovies);
             of.flush();
             of.close();
             fos.close();
@@ -539,12 +542,12 @@ public class MainActivity extends AppCompatActivity{
         return toReturn;
     }
 
-    public Stack<MainMovieCard> readToSync() {
-        Stack<MainMovieCard> toReturn = new Stack<MainMovieCard>();
+    public ArrayDeque<MainMovieCard> readToSync() {
+        ArrayDeque<MainMovieCard> toReturn = new ArrayDeque<>();
         try {
             fis = this.openFileInput("moviesToSync");
             ObjectInputStream oi = new ObjectInputStream(fis);
-            toReturn = (Stack<MainMovieCard>) oi.readObject();
+            toReturn = (ArrayDeque<MainMovieCard>) oi.readObject();
             oi.close();
             Log.v("ir", "Read from internal storage");
         } catch (FileNotFoundException e) {
@@ -630,7 +633,6 @@ public class MainActivity extends AppCompatActivity{
             MainMovieCard movieCard = new MainMovieCard(randomNum,title, description, currentDate, rating);
             mainMovieCards.add(0, movieCard);
             moviesToSync.push(movieCard);
-            tmpMovies.push(movieCard);
             (recyclerViewMain.getAdapter()).notifyDataSetChanged();
 
             saveToInternalStorage();
@@ -671,6 +673,8 @@ public class MainActivity extends AppCompatActivity{
             } catch (IOException e){
                 e.printStackTrace();
             }
+            JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
+            requestQueue.add(request);
         }
         else if (requestCode == REQUEST_LOGIN){
             Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
@@ -689,7 +693,6 @@ public class MainActivity extends AppCompatActivity{
         outState.putSerializable("moviesToDelete", moviesToDelete);
         outState.putSerializable("username", username);
         outState.putSerializable("pass", password);
-        outState.putSerializable("tmpCards", tmpMovies);
         super.onSaveInstanceState(outState);
         Log.v("s", "SAVED");
     }
