@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity{
     private final String postUrl = "http://ismoviesrest.azurewebsites.net/Movies.svc/Movie";
     private String username;
     private String password;
+    private int sent;
 
     private android.support.v7.widget.Toolbar toolbar;
 
@@ -73,9 +74,11 @@ public class MainActivity extends AppCompatActivity{
     RequestQueue requestQueue;
 
     ArrayList<MainMovieCard> mainMovieCards;
+    Stack<MainMovieCard> tmpMovies;
     Stack<MainMovieCard> moviesToSync;
     Stack<MainMovieCard> moviesToDelete;
     ArrayList<Integer> IDs;
+    FileInputStream fis;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,8 +92,7 @@ public class MainActivity extends AppCompatActivity{
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
-                requestQueue.add(request);
+                sent = tmpMovies.size();
                 while (!moviesToSync.empty()){
                     Log.e("Pop", "popped");
                     final MainMovieCard movieCard = moviesToSync.pop();
@@ -110,6 +112,8 @@ public class MainActivity extends AppCompatActivity{
                     int id = movieCard.getId();
                     deleteMovie(movieCard, id);
                 }
+                JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
+                requestQueue.add(request);
             }
         });
         swipeRefreshLayout.setColorSchemeResources(
@@ -122,7 +126,14 @@ public class MainActivity extends AppCompatActivity{
         rvAdapter = new RVAdapter(mainMovieCards, new OnDeleteClick() {
             @Override
             public void onDeleteClick(MainMovieCard movieCard) {
-                moviesToDelete.push(movieCard);
+                if (moviesToSync.contains(movieCard) && IDs.contains(movieCard.getId())){
+                    moviesToSync.remove(movieCard);
+                    moviesToDelete.push(movieCard);
+                }else if (moviesToSync.contains(movieCard) && !IDs.contains(movieCard.getId())){
+                    moviesToSync.remove(movieCard);
+                }else{
+                    moviesToDelete.add(movieCard);
+                }
                 Log.e("ON DELETE CLICK", "ON DELETE CLICK TRIGGERED " + movieCard.getMovieTitle());
             }
         });
@@ -168,6 +179,11 @@ public class MainActivity extends AppCompatActivity{
                 @Override
                 public void onResponse(String response) {
                     IDs.add(id);
+                    sent--;
+                    if (sent == 0){
+                        JsonArrayRequest request = new JsonArrayRequest(getUrl, jsonArrayListener, errorListener);
+                        requestQueue.add(request);
+                    }
                     Log.i("LOG_VOLLEY", response);
                 }
             }, new Response.ErrorListener() {
@@ -344,7 +360,7 @@ public class MainActivity extends AppCompatActivity{
                         String movieDate = object.getString("movieDate");
                         float rating = (float) object.getDouble("movieRating");
 
-                        mainMovieCards.add(new MainMovieCard(id, movieName, movieDesc, movieDate, rating));
+                        mainMovieCards.add(0, new MainMovieCard(id, movieName, movieDesc, movieDate, rating));
                         IDs.add(id);
                     }
 
@@ -352,6 +368,9 @@ public class MainActivity extends AppCompatActivity{
                     e.printStackTrace();
                     break;
                 }
+            }
+            while (!tmpMovies.isEmpty()){
+                mainMovieCards.remove(tmpMovies.pop());
             }
             (recyclerViewMain.getAdapter()).notifyDataSetChanged();
             swipeRefreshLayout.setRefreshing(false);
@@ -413,6 +432,13 @@ public class MainActivity extends AppCompatActivity{
             moviesToDelete = (Stack<MainMovieCard>) savedInstanceState.getSerializable("moviesToSync");
         }
 
+        if (savedInstanceState == null || !savedInstanceState.containsKey("tmpCards")){
+            tmpMovies = readTmp();
+        }
+        else {
+            tmpMovies = (Stack<MainMovieCard>) savedInstanceState.getSerializable("tmpCards");
+        }
+
         if (savedInstanceState == null || !savedInstanceState.containsKey("username") || !savedInstanceState.containsKey("pass")){
             String[] loginInfo = readLogin();
             username = loginInfo[0];
@@ -454,6 +480,14 @@ public class MainActivity extends AppCompatActivity{
             fos.close();
             Log.v("iw", "Written to internal storage");
 
+            fos = this.openFileOutput("tmpCards", Context.MODE_PRIVATE);
+            of = new ObjectOutputStream(fos);
+            of.writeObject(tmpMovies);
+            of.flush();
+            of.close();
+            fos.close();
+            Log.v("iw", "Written to internal storage");
+
             fos = this.openFileOutput("moviesToDelete", Context.MODE_PRIVATE);
             of = new ObjectOutputStream(fos);
             of.writeObject(moviesToDelete);
@@ -469,7 +503,6 @@ public class MainActivity extends AppCompatActivity{
 
     public ArrayList<MainMovieCard> readFromInternalStorage() {
         ArrayList<MainMovieCard> toReturn = new ArrayList<MainMovieCard>();
-        FileInputStream fis;
         try {
             fis = this.openFileInput("MainMovieCards");
             ObjectInputStream oi = new ObjectInputStream(fis);
@@ -489,7 +522,6 @@ public class MainActivity extends AppCompatActivity{
 
     public ArrayList<Integer> readIDs() {
         ArrayList<Integer> toReturn = new ArrayList<Integer>();
-        FileInputStream fis;
         try {
             fis = this.openFileInput("IDs");
             ObjectInputStream oi = new ObjectInputStream(fis);
@@ -509,7 +541,6 @@ public class MainActivity extends AppCompatActivity{
 
     public Stack<MainMovieCard> readToSync() {
         Stack<MainMovieCard> toReturn = new Stack<MainMovieCard>();
-        FileInputStream fis;
         try {
             fis = this.openFileInput("moviesToSync");
             ObjectInputStream oi = new ObjectInputStream(fis);
@@ -528,7 +559,6 @@ public class MainActivity extends AppCompatActivity{
 
     public Stack<MainMovieCard> readToDelete() {
         Stack<MainMovieCard> toReturn = new Stack<MainMovieCard>();
-        FileInputStream fis;
         try {
             fis = this.openFileInput("moviesToDelete");
             ObjectInputStream oi = new ObjectInputStream(fis);
@@ -546,10 +576,27 @@ public class MainActivity extends AppCompatActivity{
         return toReturn;
     }
 
+    public Stack<MainMovieCard> readTmp() {
+        Stack<MainMovieCard> toReturn = new Stack<MainMovieCard>();
+        try {
+            fis = this.openFileInput("tmpCards");
+            ObjectInputStream oi = new ObjectInputStream(fis);
+            toReturn = (Stack<MainMovieCard>) oi.readObject();
+            oi.close();
+            Log.v("ir", "Read from internal storage");
+        } catch (FileNotFoundException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (IOException e) {
+            Log.e("InternalStorage", e.getMessage());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return toReturn;
+    }
 
     public String[] readLogin() {
         String[] toReturn = new String[2];
-        FileInputStream fis;
         try {
             fis = this.openFileInput("LoginData");
             ObjectInputStream oi = new ObjectInputStream(fis);
@@ -583,6 +630,7 @@ public class MainActivity extends AppCompatActivity{
             MainMovieCard movieCard = new MainMovieCard(randomNum,title, description, currentDate, rating);
             mainMovieCards.add(0, movieCard);
             moviesToSync.push(movieCard);
+            tmpMovies.push(movieCard);
             (recyclerViewMain.getAdapter()).notifyDataSetChanged();
 
             saveToInternalStorage();
@@ -599,7 +647,9 @@ public class MainActivity extends AppCompatActivity{
             mainMovieCards.get(position).setMovieDescription(description);
             mainMovieCards.get(position).setRating(rating);
 
-            moviesToSync.push(mainMovieCards.get(position));
+            if (!moviesToSync.contains(mainMovieCards.get(position))){
+                moviesToSync.push(mainMovieCards.get(position));
+            }
             (recyclerViewMain.getAdapter()).notifyDataSetChanged();
 
             saveToInternalStorage();
@@ -622,7 +672,7 @@ public class MainActivity extends AppCompatActivity{
                 e.printStackTrace();
             }
         }
-        else {
+        else if (requestCode == REQUEST_LOGIN){
             Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
             startActivityForResult(intent, REQUEST_LOGIN);
         }
@@ -639,6 +689,7 @@ public class MainActivity extends AppCompatActivity{
         outState.putSerializable("moviesToDelete", moviesToDelete);
         outState.putSerializable("username", username);
         outState.putSerializable("pass", password);
+        outState.putSerializable("tmpCards", tmpMovies);
         super.onSaveInstanceState(outState);
         Log.v("s", "SAVED");
     }
@@ -676,7 +727,6 @@ public class MainActivity extends AppCompatActivity{
 
             Intent intent = new Intent(MainActivity.this, LoginActivityMain.class);
             startActivityForResult(intent, REQUEST_LOGIN);
-            finish();
         }
         return super.onOptionsItemSelected(item);
     }
