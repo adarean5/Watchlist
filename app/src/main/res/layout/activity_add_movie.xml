@@ -92,7 +92,6 @@
                                 android:layout_marginRight="16dp"
                                 android:layout_weight="1"
                                 android:hint="Enter title"
-                                android:maxLines="1"
                                 android:textColor="@android:color/background_dark"
                                 android:textSize="20sp" />
 
@@ -123,7 +122,6 @@
                             android:layout_margin="16dp"
                             android:layout_weight="1"
                             android:hint="Optional: Enter description"
-                            android:maxLines="6"
                             android:textColor="@android:color/background_dark"
                             android:textSize="14sp"
                             app:layout_constraintEnd_toEndOf="parent"

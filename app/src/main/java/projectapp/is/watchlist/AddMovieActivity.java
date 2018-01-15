@@ -60,7 +60,7 @@ public class AddMovieActivity extends AppCompatActivity {
                 editTitle.setText(bundle.getString("movieTitle"));
                 editDesc.setText(bundle.getString("movieDesc"));
                 dateText.setText(bundle.getString("dateText"));
-                ratingBar.setRating(bundle.getFloat("movieRaring"));
+                ratingBar.setRating(bundle.getFloat("movieRating"));
                 position = bundle.getInt("position");
             }
             else {
